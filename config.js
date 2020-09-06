@@ -4,7 +4,5 @@ module.exports = {
 	username: "cassandra",
 	pawssword: "cassandra",
 	localDataCenter: "datacenter1",
-	//keyspace: 'tutorialspoint'
-	keyspace: "grocery",
-	//keyspace: 'cycling'
+	keyspace: "grocery"
 };

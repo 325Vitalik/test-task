@@ -113,8 +113,8 @@ async function convertMap(type) {
 		.map((t) => t.trim());
 	const obj = {
 		type: "object",
-		additionalProperties: {}
-	}
+		additionalProperties: {},
+	};
 	obj.additionalProperties = await convertType(keyValue[1]);
 	return obj;
 }
