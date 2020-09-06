@@ -11,14 +11,12 @@ module.exports = {
 		["float", "number"],
 		["inet", "string"],
 		["int", "integer"],
-		// ["map", "object"], // * example below
 		["smallint", "integer"],
 		["text", "string"],
 		["time", "string"],
 		["timestamp", "string"],
 		["timeuuid", "string"],
 		["tinyint", "integer"],
-		//["UDT", "object"], // * User-Defined-Type
 		["uuid", "string"],
 		["varchar", "string"],
 		["varint", "integer"],

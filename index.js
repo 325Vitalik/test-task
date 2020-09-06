@@ -1,59 +1,52 @@
-'use strict'
-const cassandra = require("cassandra-driver");
-const fs = require("fs");
-
 const convertion = require("./src/helpers/convertionHelper");
-const config = require("./config");
-const queries = require("./src/queries");
+const saving = require("./src/helpers/fileHelper");
+const cassandraService = require("./src/services/cassandraService");
 
-const authProvider = new cassandra.auth.PlainTextAuthProvider(config.username, config.pawssword);
-const client = new cassandra.Client({
-	contactPoints: [`${config.host}:${config.port}`],
-	localDataCenter: "datacenter1",
-	authProvider: authProvider,
-	keyspace: config.keyspace,
-});
-
-client
+cassandraService
 	.connect()
 	.catch((err) => console.error("Error occured while connecting to database:\n", err))
-	.then(async () => {
-        console.info("Connected successfully");
-        convertion.setClient(client);
-		var tables = await getAllTables();
+	.then(async (client) => {
+		console.info("Connected successfully");
+
+		convertion.setClient(client);
+
+		var tables = await getTables(client);
 		if (tables) {
 			const result = [];
+
 			for (let table of tables) {
-				const columns = await getAllColumns(table);
+				const columns = await getColumns(client, table);
 				if (columns) {
 					result.push(await convertion.convertTable(table.table_name, columns));
 				}
 			}
-			fs.writeFile("./result.json", JSON.stringify(result, undefined, 2), (err) => {
-				if (err) {
-					console.error("Error occured while saving result:\n", err);
-					return;
-				}
-				console.log("Saved successfully in result.json");
-			});
-		} else {
-            console.log("There is no tables");
-        }
+
+			saveResults(result);
+		}
 	})
 	.catch((err) => console.error("Error:\n", err));
 
-async function getAllTables() {
+function saveResults(obj) {
 	try {
-		return (await client.execute(queries.getTablesQuery(config.keyspace))).rows;
-	} catch (error) {
-		console.error("Error occured while getting tables of database:\n", error);
+		saving.save("./result.json", obj);
+		console.log("Saved successfully in result.json");
+	} catch {
+		console.error("Error occured while saving result:\n", err);
 	}
 }
 
-async function getAllColumns(table) {
+async function getTables(client) {
 	try {
-		return (await client.execute(queries.getColumnsQuery(config.keyspace, table.table_name))).rows;
+		return await cassandraService.getAllTables(client);
 	} catch (error) {
-		console.error(`Error occured while getting columns of table ${table.table_name} of database:\n`, error);
+		console.error("Error occured while getting tables");
+	}
+}
+
+async function getColumns(client, table) {
+	try {
+		return await cassandraService.getAllColumns(client, table.table_name);
+	} catch (error) {
+		console.log(`Error occured while getting columns of table ${table.table_name}`);
 	}
 }
