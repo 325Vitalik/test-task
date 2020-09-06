@@ -4,6 +4,7 @@ const fs = require("fs");
 const jsonTypes = require("./types");
 const config = require("./config");
 const queries = require("./queries");
+const { type } = require("os");
 
 const authProvider = new cassandra.auth.PlainTextAuthProvider(config.username, config.pawssword);
 const client = new cassandra.Client({
@@ -21,7 +22,7 @@ client
 		var tables = await getAllTables();
 		if (tables) {
 			const result = [];
-			for (table of tables) {
+			for (let table of tables) {
 				const columns = await getAllColumns(table);
 				if (columns) {
 					result.push(await configureTableObject(table.table_name, columns));
@@ -74,18 +75,7 @@ async function configureType(type, tableName, clolumnName) {
 		return convertArray(type);
 	} else if (type === "text") {
 		try {
-            const str = (await client.execute(queries.getFirstItemQuery(config.keyspace, tableName, clolumnName))).rows[0];
-			const obj = JSON.parse(str[clolumnName]);
-			const returnObj = {
-				type: "object",
-				properties: {},
-			};
-			for (prop in obj) {
-				returnObj.properties[prop] = {
-					type: typeof obj[prop],
-				};
-			}
-			return returnObj;
+			return await convertTextIfJsonObject(tableName, clolumnName);
 		} catch {
 			return {
 				type: jsonTypes.primitiveTypes.get(type),
@@ -105,4 +95,34 @@ async function convertArray(type) {
 		items: await configureType(typeOfItem),
 	};
 	return obj;
+}
+
+async function convertTextIfJsonObject(tableName, clolumnName) {
+	const str = (await client.execute(queries.getFirstItemQuery(config.keyspace, tableName, clolumnName))).rows[0];
+	const obj = JSON.parse(str[clolumnName]);
+	return configureObject(obj);
+}
+
+function configureObject(obj) {
+	const returnObj = {
+		type: "object",
+		properties: {},
+	};
+	for (prop in obj) {
+		if (obj[prop] instanceof Array) {
+			returnObj.properties[prop] = {
+				type: "array",
+				items: {
+					type: typeof obj[prop][0],
+				},
+			};
+		} else if (typeof obj[prop] === "object") {
+			returnObj.properties[prop] = configureObject(obj[prop]);
+		} else {
+			returnObj.properties[prop] = {
+				type: typeof obj[prop],
+			};
+		}
+	}
+	return returnObj;
 }
