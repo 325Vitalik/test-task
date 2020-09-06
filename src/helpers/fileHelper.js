@@ -5,7 +5,7 @@ module.exports = {
 }
 
 function saveInFile(fileName, obj){
-    fs.writeFile(fileName, JSON.stringify(obj, undefined, 2), (err) => {
+    fs.writeFileSync(fileName, JSON.stringify(obj, undefined, 2), (err) => {
         if (err) {
             throw err;
         }

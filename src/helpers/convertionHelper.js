@@ -2,11 +2,11 @@ const config = require("../../config");
 const queries = require("../queries");
 const jsonTypes = require("../types");
 
-let client;
+let dbService;
 
 module.exports = {
-	setClient: function(dbClient){
-		client = dbClient;
+	setDbService: function (service) {
+		dbService = service;
 	},
 	convertTable: configureTableObject,
 };
@@ -49,7 +49,7 @@ async function convertType(type, tableName, clolumnName) {
 			type: jsonTypes.primitiveTypes.get(type),
 		};
 	} else {
-		const typeData = (await client.execute(queries.getUDTQuery(config.keyspace, type))).rows;
+		const typeData = await dbService.getUDTDefinition(type);
 		if (typeData.length === 0) {
 			console.error(`user defined type ${type} not found`);
 			return;
@@ -77,7 +77,7 @@ function getInnerValue(type) {
 }
 
 async function convertTextIfJsonObject(tableName, clolumnName) {
-	const str = (await client.execute(queries.getFirstItemQuery(config.keyspace, tableName, clolumnName))).rows[0];
+	const str = await dbService.getFirstItemOfTable(tableName, clolumnName);
 	const obj = JSON.parse(str[clolumnName]);
 	return configureObject(obj);
 }
@@ -111,7 +111,10 @@ async function convertMap(type) {
 		.substring(type.indexOf("<") + 1, type.indexOf(">"))
 		.split(",")
 		.map((t) => t.trim());
-	const obj = await convertType(keyValue[0]);
+	const obj = {
+		type: "object",
+		additionalProperties: {}
+	}
 	obj.additionalProperties = await convertType(keyValue[1]);
 	return obj;
 }
