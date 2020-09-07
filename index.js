@@ -4,7 +4,10 @@ const cassandraService = require("./src/services/cassandraService");
 
 cassandraService
 	.connect()
-	.catch((err) => console.error("Error occured while connecting to database:\n", err))
+	.catch((err) => {
+		console.error("Error occured while connecting to database:");
+		throw err;
+	})
 	.then(async () => {
 		console.info("Connected successfully");
 
